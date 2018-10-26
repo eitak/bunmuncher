@@ -1,19 +1,24 @@
-import React, { Component } from "react";
+import React from "react";
 import _ from "lodash";
-
 import PropTypes from "prop-types";
+
+import Bunny from "./Bunny";
+import GameBoard from "../containers/GameBoard";
 
 const Main = ({ addBun, bunCount }) => (
 	<div className="container">
-		<h1>🐰 bunmuncher 🐰</h1>
+		<h1>
+			<Bunny /> bunmuncher <Bunny />
+		</h1>
 		<button type="button" className="btn btn-light" onClick={addBun}>
-			🐰
+			<Bunny />
 		</button>
 		<div>
 			{_.range(bunCount).map(i => (
-				<span key={i}>🐰</span>
+				<Bunny key={i} />
 			))}
 		</div>
+		<GameBoard />
 	</div>
 );
 
