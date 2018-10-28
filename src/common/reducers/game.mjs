@@ -64,7 +64,10 @@ function addPlayer({ board, players }, { player }) {
 }
 
 function nextFrame({ board, players }) {
-	const nextPositions = _.mapValues(players, getNextPosition);
+	const nextPositions = _.mapValues(
+		players,
+		player => getNextPosition(player) || player.position
+	);
 	const playersGroupedByPosition = _.groupBy(_.keys(players), playerId =>
 		getPositionId(nextPositions[playerId])
 	);
@@ -99,7 +102,7 @@ function nextFrame({ board, players }) {
 		)
 	);
 
-	// Update players with new positions.
+	// Update players.
 	const nextPlayers = _.mapValues(players, player => {
 		const playerId = player.id;
 		const position = nextPositions[playerId];
@@ -107,82 +110,154 @@ function nextFrame({ board, players }) {
 		const killed = player.killed || killedPlayers.indexOf(playerId) >= 0;
 		const path = [...player.path, position];
 		const pathComplete = isPathComplete(board, { id: playerId, path });
-		return { ...player, position, direction, killed, path: pathComplete ? [] : path };
+		return { ...player, position, direction, killed, path: pathComplete || killed ? [] : path };
 	});
 
-	// Cells that are already filled or are filled with a complete path.
-	const definiteFilledCells = updateBoard(board, ({ pathPlayerId, filledPlayerId }) => {
-		const pathPlayer = pathPlayerId && nextPlayers[pathPlayerId];
-		if (pathPlayer && !pathPlayer.killed && pathPlayer.path.length === 0) {
-			return pathPlayerId;
-		}
+	const result = {
+		board: getNewBoard(board, nextPlayers, playersGroupedByPosition),
+		players: nextPlayers
+	};
 
-		const filledPlayer = filledPlayerId && nextPlayers[filledPlayerId];
-		if (filledPlayer && !filledPlayer.killed) {
-			return filledPlayerId;
-		}
-	});
-
-	const nextBoard = updateBoard(board, cell => {
-		const filledPlayerId = getFilledPlayerId(definiteFilledCells, cell);
-		const players = playersGroupedByPosition[getPositionId(cell.position)] || [];
-
-		const currentPathPlayerId = cell.pathPlayerId;
-		const currentPathPlayer = currentPathPlayerId && nextPlayers[currentPathPlayerId];
-		if (currentPathPlayer && !currentPathPlayer.killed && currentPathPlayer.path.length > 0) {
-			return { ...cell, players, filledPlayerId, pathPlayerId: currentPathPlayerId };
-		}
-
-		const playerIdAtCell = _.find(players, playerId => !nextPlayers[playerId].killed);
-		const pathPlayerId = filledPlayerId === playerIdAtCell ? undefined : playerIdAtCell;
-
-		return { ...cell, players, filledPlayerId, pathPlayerId };
-	});
-
-	return { board: nextBoard, players: nextPlayers };
+	return result;
 }
 
-function getFilledPlayerId(definiteFilledCells, cell) {
-	// Is cell filled by path complete or was already filled.
-	const existingFilledPlayerId = definiteFilledCells[cell.position.i][cell.position.j];
-	if (existingFilledPlayerId) {
-		return existingFilledPlayerId;
+function getNewBoard(board, players, playersGroupedByPosition) {
+	const newBoard = Array(boardSize)
+		.fill(undefined)
+		.map(() => Array(boardSize).fill(undefined));
+
+	for (let i = 0; i < boardSize; i++) {
+		for (let j = 0; j < boardSize; j++) {
+			if (newBoard[i][j]) {
+				continue;
+			}
+
+			const { area, filledPlayerId } = getArea({ i, j }, board, players);
+			_.forEach(area, position => {
+				const cell = board[position.i][position.j];
+				const playersAtCell = playersGroupedByPosition[getPositionId(position)];
+				const pathPlayerId = getPathPlayerId(cell, playersAtCell, players);
+				newBoard[position.i][position.j] = {
+					...cell,
+					players: playersAtCell,
+					filledPlayerId,
+					pathPlayerId: pathPlayerId === filledPlayerId ? undefined : pathPlayerId
+				};
+			});
+		}
 	}
 
-	// Is cell newly filled.
-	const { i, j } = cell.position;
-	const row = definiteFilledCells[i];
+	return newBoard;
+}
 
-	const nextFilledLeft = _.findLast(row.slice(0, j));
-	if (!nextFilledLeft) {
-		return;
+function getArea(initialPosition, board, players) {
+	const filledPlayerId = getFilledOrPathCompletePlayerId(initialPosition, board, players);
+	if (filledPlayerId) {
+		return getFilledArea(initialPosition, board, players);
 	}
 
-	const nextFilledPlayerId = nextFilledLeft;
+	return getEmptyArea(initialPosition, board, players);
+}
 
-	const nextFilledRight = _.find(row.slice(j + 1));
-	if (!nextFilledRight || nextFilledRight !== nextFilledPlayerId) {
-		return;
+function getEmptyArea(initialPosition, board, players) {
+	const area = [];
+	const filledPlayerIds = [];
+
+	const stack = [initialPosition];
+	while (stack.length > 0) {
+		const position = stack.pop();
+
+		if (!position) {
+			filledPlayerIds.push(undefined);
+			continue;
+		}
+
+		const alreadyInArea = _.find(area, areaPosition => _.isEqual(areaPosition, position));
+		if (alreadyInArea) {
+			continue;
+		}
+
+		const filledPlayerId = getFilledOrPathCompletePlayerId(position, board, players);
+		if (filledPlayerId) {
+			filledPlayerIds.push(filledPlayerId);
+			continue;
+		}
+
+		area.push(position);
+
+		stack.push(getNextPosition({ position, direction: directions.UP }));
+		stack.push(getNextPosition({ position, direction: directions.DOWN }));
+		stack.push(getNextPosition({ position, direction: directions.LEFT }));
+		stack.push(getNextPosition({ position, direction: directions.RIGHT }));
 	}
 
-	const column = _.zip(...definiteFilledCells)[j];
-	const nextFilledUp = _.findLast(column.slice(0, i));
-	if (!nextFilledUp || nextFilledUp !== nextFilledPlayerId) {
-		return;
+	const filledPlayerId = _.uniq(filledPlayerIds).length === 1 ? filledPlayerIds[0] : undefined;
+	return { area, filledPlayerId };
+}
+
+function getFilledArea(initialPosition, board, players) {
+	const area = [];
+
+	const filledPlayerId = getFilledOrPathCompletePlayerId(initialPosition, board, players);
+
+	const stack = [initialPosition];
+	while (stack.length > 0) {
+		const position = stack.pop();
+
+		if (!position) {
+			continue;
+		}
+
+		const alreadyInArea = _.find(area, areaPosition => _.isEqual(areaPosition, position));
+		if (alreadyInArea) {
+			continue;
+		}
+
+		const cellFilledPlayerId = getFilledOrPathCompletePlayerId(position, board, players);
+		if (cellFilledPlayerId === filledPlayerId) {
+			area.push(position);
+			continue;
+		}
+
+		stack.push(getNextPosition({ position, direction: directions.UP }));
+		stack.push(getNextPosition({ position, direction: directions.DOWN }));
+		stack.push(getNextPosition({ position, direction: directions.LEFT }));
+		stack.push(getNextPosition({ position, direction: directions.RIGHT }));
 	}
 
-	const nextFilledDown = _.find(column.slice(i + 1));
-	if (!nextFilledDown || nextFilledDown !== nextFilledPlayerId) {
-		return;
+	return { area, filledPlayerId };
+}
+
+function getFilledOrPathCompletePlayerId(position, board, players) {
+	const cell = board[position.i][position.j];
+	const pathPlayerId = cell.pathPlayerId;
+	const pathPlayer = pathPlayerId && players[pathPlayerId];
+	if (pathPlayer && !pathPlayer.killed && pathPlayer.path.length === 0) {
+		return pathPlayerId;
 	}
 
-	return nextFilledPlayerId;
+	const filledPlayerId = cell.filledPlayerId;
+	if (filledPlayerId && !players[filledPlayerId].killed) {
+		return filledPlayerId;
+	}
+}
+
+function getPathPlayerId(cell, playersAtCell, players) {
+	const currentPathPlayerId = cell.pathPlayerId;
+	const currentPathPlayer = currentPathPlayerId && players[currentPathPlayerId];
+	const currentPathStillActive =
+		currentPathPlayer && !currentPathPlayer.killed && currentPathPlayer.path.length > 0;
+	if (currentPathStillActive) {
+		return currentPathPlayerId;
+	}
+
+	return _.find(playersAtCell, playerId => !players[playerId].killed);
 }
 
 function isPathComplete(board, player) {
 	const path = player.path;
 	if (path.length === 0) {
-		return;
+		return false;
 	}
 
 	const playerId = player.id;
@@ -200,8 +275,8 @@ function isPathComplete(board, player) {
 
 	// Check that first in path is next to a filled cell.
 	const firstInPath = path[0];
-	const adjacentPositions = _.values(directions).map(direction =>
-		getNextPosition({ position: firstInPath, direction })
+	const adjacentPositions = _.compact(
+		_.values(directions).map(direction => getNextPosition({ position: firstInPath, direction }))
 	);
 	const firstInPathIsNotNextToAFilledCell = adjacentPositions.every(
 		({ i, j }) => board[i][j].filledPlayerId !== playerId
@@ -231,16 +306,10 @@ function getNextPosition(player) {
 	if (actualDirection === directions.DOWN && i < boardSize - 1) {
 		return { i: i + 1, j };
 	}
-
-	return { i, j };
 }
 
 function getPositionId({ i, j }) {
 	return `${i}-${j}`;
-}
-
-function updateBoard(board, updateCell) {
-	return board.map(row => row.map(updateCell));
 }
 
 function updateCell(board, { i, j }, newContents) {
