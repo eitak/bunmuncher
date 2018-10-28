@@ -12,7 +12,6 @@ const keyDirectionMapping = {
 
 class GameBoard extends Component {
 	handleKeyPress(event) {
-		console.log(event);
 		const direction = keyDirectionMapping[event.key];
 		if (direction) {
 			this.props.changeDirection(direction);
@@ -29,16 +28,21 @@ class GameBoard extends Component {
 
 	render() {
 		return (
-			<div
-				style={{
-					borderWidth: 1,
-					borderStyle: "solid",
-					display: "inline-block"
-				}}
-			>
-				{_.range(boardSize).map(i => (
-					<Row key={i} players={this.props.players} row={this.props.board[i]} />
-				))}
+			<div>
+				<div>
+					{this.props.players.katie && this.props.players.katie.killed ? "😵" : null}
+				</div>
+				<div
+					style={{
+						borderWidth: 1,
+						borderStyle: "solid",
+						display: "inline-block"
+					}}
+				>
+					{_.range(boardSize).map(i => (
+						<Row key={i} players={this.props.players} row={this.props.board[i]} />
+					))}
+				</div>
 			</div>
 		);
 	}
@@ -61,13 +65,7 @@ const Row = ({ row, players }) => {
 };
 
 const Item = ({ item, players }) => {
-	let backgroundColor;
-	if (item.state === boardState.FILLED) {
-		const ownerPlayer = players[item.ownerPlayerId];
-		backgroundColor = ownerPlayer.colour;
-	}
-
-	const style = {
+	let style = {
 		float: "left",
 		width: 25,
 		height: 25,
@@ -76,11 +74,32 @@ const Item = ({ item, players }) => {
 		backgroundColor
 	};
 
-	if (item.players.length > 0) {
-		const player = players[item.players[0]];
+	let backgroundColor;
+
+	const filledPlayerId = item.filledPlayerId;
+	if (filledPlayerId) {
+		const filledPlayer = players[filledPlayerId];
+		style = {
+			...style,
+			...filledPlayer.fillStyle
+		};
+	}
+
+	const pathPlayerId = item.pathPlayerId;
+	if (pathPlayerId) {
+		const pathPlayer = players[pathPlayerId];
+		style = {
+			...style,
+			...pathPlayer.pathStyle
+		};
+	}
+
+	const playerId = _.find(item.players, playerId => !players[playerId].killed);
+	if (playerId) {
+		const player = players[playerId];
 		return (
 			<div style={{ ...style }}>
-				<span role="img" aria-label={player.id} style={{ padding: 3 }}>
+				<span role="img" aria-label={player.id} style={{ padding: 4 }}>
 					{player.icon}
 				</span>
 			</div>

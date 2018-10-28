@@ -1,12 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { createStore, applyMiddleware, compose } from "redux";
+import { createStore } from "redux";
 import { Provider } from "react-redux";
 import reducer from "../common/reducers";
 import Main from "./containers/Main";
 
-const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-const store = createStore(reducer, composeEnhancers(applyMiddleware(socketIoMiddleware)));
+const store = createStore(reducer);
 
 const rootElement = document.getElementById("root");
 const render = () =>
@@ -25,9 +24,15 @@ store.dispatch({
 		id: "katie",
 		icon: "🐰",
 		direction: "DOWN",
-		colour: "DeepPink"
-	},
-	position: { i: 10, j: 5 }
+		fillStyle: {
+			backgroundColor: "DeepPink"
+		},
+		pathStyle: {
+			backgroundColor: "Pink"
+		},
+		path: [],
+		position: { i: 0, j: 0 }
+	}
 });
 setInterval(() => store.dispatch({ type: "NEXT_FRAME" }), 300);
 
