@@ -64,7 +64,7 @@ function addPlayer({ board, players, scores }, { player }) {
 	};
 }
 
-function nextFrame({ board, players }) {
+function nextFrame({ board, players, scores }) {
 	const nextPositions = _.mapValues(
 		players,
 		player => getNextPosition(player) || player.position
@@ -116,10 +116,13 @@ function nextFrame({ board, players }) {
 
 	const nextBoard = getNewBoard(board, nextPlayers, playersGroupedByPosition);
 
-	const nextScores = _.countBy(
-		_.flatten(nextBoard).filter(item => item.filledPlayerId),
-		item => item.filledPlayerId
-	);
+	const nextScores = {
+		..._.countBy(
+			_.flatten(nextBoard).filter(item => item.filledPlayerId),
+			item => item.filledPlayerId
+		),
+		..._.mapValues(_.pickBy(nextPlayers, player => player.killed), player => scores[player.id])
+	};
 
 	const result = {
 		board: nextBoard,
@@ -148,7 +151,7 @@ function getNewBoard(board, players, playersGroupedByPosition) {
 				const pathPlayerId = getPathPlayerId(cell, playersAtCell, players);
 				newBoard[position.i][position.j] = {
 					...cell,
-					players: playersAtCell,
+					players: playersAtCell || [],
 					filledPlayerId,
 					pathPlayerId: pathPlayerId === filledPlayerId ? undefined : pathPlayerId
 				};

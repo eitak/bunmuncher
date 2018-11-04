@@ -1,6 +1,6 @@
 import _ from "lodash";
 
-import { directions } from "./common/constants";
+import { directions, boardSize } from "./common/constants";
 import reducer from "./common/reducers/game";
 import { createStore } from "redux";
 
@@ -11,6 +11,9 @@ const pathColour = "PaleGreen";
 
 const actions = _.values(directions);
 module.exports.actions = actions;
+
+const gridSize = boardSize;
+module.exports.gridSize = gridSize;
 
 module.exports.start = start;
 async function start(getNextAction) {
@@ -36,7 +39,7 @@ async function start(getNextAction) {
 					backgroundColor: pathColour
 				},
 				path: [],
-				position: _.sample(_.flatten(store.getState().game.board)).position
+				position: _.sample(_.flatten(store.getState().board)).position
 			}
 		});
 
@@ -45,7 +48,7 @@ async function start(getNextAction) {
 		let score = 0;
 
 		while (true) {
-			const { players, board, scores } = store.getState().game;
+			const { players, board, scores } = store.getState();
 			terminal = players[playerId].killed;
 			score = scores[playerId];
 			const action = await getNextAction({
@@ -79,9 +82,24 @@ async function start(getNextAction) {
 	}
 }
 
-export function renderGameToCanvas(game, canvas) {
-	const gridSize = game.length;
+export function stateToTensor(state) {
+	console.log(state);
+	return state.map(row =>
+		row.map(cell => [
+			cell.pathPlayerId ? 1 : 0,
+			cell.filledPlayerId ? 1 : 0,
+			cell.players.length > 0 ? 1 : 0,
+			1
+		])
+	);
+}
 
+// Defines the reward function, so really part of ML. But it's specific to the game...
+export function getScore(frame) {
+	return +frame.score - frame.frameIdx / 10;
+}
+
+export function renderGameToCanvas(game, canvas) {
 	const ctx = canvas.ctx || (canvas.ctx = canvas.getContext("2d"));
 	const w = canvas.width;
 	const h = canvas.height;
@@ -98,10 +116,12 @@ export function renderGameToCanvas(game, canvas) {
 			if (cell.pathPlayerId) {
 				ctx.fillStyle = pathColour;
 			} else if (cell.filledPlayerId) {
-				ctx.fillStyle = filledPlayerId;
-			} else if (cell.players.length > 0) {
-				ctx.fillStyle = "white";
+				ctx.fillStyle = fillColour;
 			} else {
+				ctx.fillStyle = "white";
+			}
+
+			if (cell.players.length > 0) {
 				ctx.fillText(icon, x, y);
 			}
 			ctx.fillRect(x, y, cw, ch);

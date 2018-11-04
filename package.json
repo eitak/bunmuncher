@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "bun munching extravaganza",
 	"author": "eitak <eitak@users.noreply.github.com>",
-	"main": "src/index.js",
+	"main": "dist/ml.js",
 	"license": "MIT",
 	"dependencies": {
 		"express": "^4.16.4",
@@ -25,8 +25,10 @@
 			"git add"
 		]
 	},
+	"browserslist": "last 20 Chrome versions",
 	"scripts": {
 		"start": "node --experimental-modules src/server/index.mjs",
+		"build": "parcel build src/ml.mjs",
 		"precommit": "lint-staged",
 		"fmt": "prettier --write './**/*.js'"
 	}
