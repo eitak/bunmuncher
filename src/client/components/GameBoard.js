@@ -70,11 +70,8 @@ const Item = ({ item, players }) => {
 		width: 25,
 		height: 25,
 		margin: 0,
-		padding: 0,
-		backgroundColor
+		padding: 0
 	};
-
-	let backgroundColor;
 
 	const filledPlayerId = item.filledPlayerId;
 	if (filledPlayerId) {

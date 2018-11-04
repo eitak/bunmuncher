@@ -173,6 +173,9 @@ function getArea(initialPosition, board, players) {
 
 function getEmptyArea(initialPosition, board, players) {
 	const area = [];
+	const alreadyExaminedArea = Array(boardSize)
+		.fill(undefined)
+		.map(() => Array(boardSize).fill(false));
 	const filledPlayerIds = [];
 
 	const stack = [initialPosition];
@@ -184,10 +187,12 @@ function getEmptyArea(initialPosition, board, players) {
 			continue;
 		}
 
-		const alreadyInArea = _.find(area, areaPosition => _.isEqual(areaPosition, position));
+		const alreadyInArea = alreadyExaminedArea[position.i][position.j];
 		if (alreadyInArea) {
 			continue;
 		}
+
+		alreadyExaminedArea[position.i][position.j] = true;
 
 		const filledPlayerId = getFilledOrPathCompletePlayerId(position, board, players);
 		if (filledPlayerId) {
@@ -209,6 +214,9 @@ function getEmptyArea(initialPosition, board, players) {
 
 function getFilledArea(initialPosition, board, players) {
 	const area = [];
+	const alreadyExaminedArea = Array(boardSize)
+		.fill(undefined)
+		.map(() => Array(boardSize).fill(false));
 
 	const filledPlayerId = getFilledOrPathCompletePlayerId(initialPosition, board, players);
 
@@ -220,10 +228,12 @@ function getFilledArea(initialPosition, board, players) {
 			continue;
 		}
 
-		const alreadyInArea = _.find(area, areaPosition => _.isEqual(areaPosition, position));
+		const alreadyInArea = alreadyExaminedArea[position.i][position.j];
 		if (alreadyInArea) {
 			continue;
 		}
+
+		alreadyExaminedArea[position.i][position.j] = true;
 
 		const cellFilledPlayerId = getFilledOrPathCompletePlayerId(position, board, players);
 		if (cellFilledPlayerId === filledPlayerId) {
