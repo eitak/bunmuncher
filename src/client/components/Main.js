@@ -4,6 +4,7 @@ import PropTypes from "prop-types";
 
 import Bunny from "./Bunny";
 import GameBoard from "../containers/GameBoard";
+import Scores from "../containers/Scores";
 
 const Main = ({ addBun, bunCount }) => (
 	<div className="container">
@@ -19,6 +20,7 @@ const Main = ({ addBun, bunCount }) => (
 			))}
 		</div>
 		<GameBoard />
+		<Scores />
 	</div>
 );
 

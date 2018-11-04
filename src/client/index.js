@@ -22,6 +22,7 @@ store.dispatch({
 	type: "ADD_PLAYER",
 	player: {
 		id: "katie",
+		name: "katie",
 		icon: "🐰",
 		direction: "DOWN",
 		fillStyle: {

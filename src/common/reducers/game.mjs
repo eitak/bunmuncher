@@ -11,7 +11,7 @@ const initialBoard = Array(boardSize)
 			});
 	});
 
-export default (state = { board: initialBoard, players: {} }, action) => {
+export default (state = { board: initialBoard, players: {}, scores: {} }, action) => {
 	switch (action.type) {
 		case "ADD_PLAYER":
 			return addPlayer(state, action);
@@ -39,7 +39,7 @@ function setPlayerDirection(state, { playerId, direction }) {
 	}
 
 	return {
-		board: state.board,
+		...state,
 		players: {
 			...state.players,
 			[playerId]: {
@@ -50,7 +50,7 @@ function setPlayerDirection(state, { playerId, direction }) {
 	};
 }
 
-function addPlayer({ board, players }, { player }) {
+function addPlayer({ board, players, scores }, { player }) {
 	const playerId = player.id;
 	const position = player.position;
 
@@ -59,7 +59,8 @@ function addPlayer({ board, players }, { player }) {
 
 	return {
 		board: updateCell(board, position, newCell),
-		players: { ...players, [playerId]: player }
+		players: { ...players, [playerId]: { ...player } },
+		scores: { ...scores, [playerId]: 0 }
 	};
 }
 
@@ -113,9 +114,17 @@ function nextFrame({ board, players }) {
 		return { ...player, position, direction, killed, path: pathComplete || killed ? [] : path };
 	});
 
+	const nextBoard = getNewBoard(board, nextPlayers, playersGroupedByPosition);
+
+	const nextScores = _.countBy(
+		_.flatten(nextBoard).filter(item => item.filledPlayerId),
+		item => item.filledPlayerId
+	);
+
 	const result = {
-		board: getNewBoard(board, nextPlayers, playersGroupedByPosition),
-		players: nextPlayers
+		board: nextBoard,
+		players: nextPlayers,
+		scores: nextScores
 	};
 
 	return result;
