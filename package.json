@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"description": "bun munching extravaganza",
 	"author": "eitak <eitak@users.noreply.github.com>",
+	"main": "src/index.js",
 	"license": "MIT",
 	"dependencies": {
 		"express": "^4.16.4",
