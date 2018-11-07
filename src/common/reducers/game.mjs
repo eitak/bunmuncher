@@ -19,6 +19,8 @@ export default (state = { board: initialBoard, players: {}, scores: {} }, action
 			return setPlayerDirection(state, action);
 		case "NEXT_FRAME":
 			return nextFrame(state);
+		case "GAME_SNAPSHOT":
+			return action.snapshot;
 		default:
 			return state;
 	}
@@ -34,6 +36,7 @@ function setPlayerDirection(state, { playerId, direction }) {
 	const forbiddenMove =
 		_.isEqual([currentDirection, direction].sort(), [directions.UP, directions.DOWN].sort()) ||
 		_.isEqual([currentDirection, direction].sort(), [directions.LEFT, directions.RIGHT].sort());
+
 	if (!inOwnTerritory && forbiddenMove) {
 		return state;
 	}
@@ -134,13 +137,14 @@ function nextFrame({ board, players, scores }) {
 }
 
 function getNewBoard(board, players, playersGroupedByPosition) {
-	const newBoard = Array(boardSize)
+	const alreadyUpdatedCells = Array(boardSize)
 		.fill(undefined)
-		.map(() => Array(boardSize).fill(undefined));
+		.map(() => Array(boardSize).fill(false));
+	let newBoard = board;
 
 	for (let i = 0; i < boardSize; i++) {
 		for (let j = 0; j < boardSize; j++) {
-			if (newBoard[i][j]) {
+			if (alreadyUpdatedCells[i][j]) {
 				continue;
 			}
 
@@ -149,12 +153,14 @@ function getNewBoard(board, players, playersGroupedByPosition) {
 				const cell = board[position.i][position.j];
 				const playersAtCell = playersGroupedByPosition[getPositionId(position)];
 				const pathPlayerId = getPathPlayerId(cell, playersAtCell, players);
-				newBoard[position.i][position.j] = {
+
+				alreadyUpdatedCells[position.i][position.j] = true;
+				newBoard = updateCell(newBoard, position, {
 					...cell,
 					players: playersAtCell || [],
 					filledPlayerId,
 					pathPlayerId: pathPlayerId === filledPlayerId ? undefined : pathPlayerId
-				};
+				});
 			});
 		}
 	}

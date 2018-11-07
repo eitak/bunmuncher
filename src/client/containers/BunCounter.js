@@ -1,5 +1,5 @@
 import { connect } from "react-redux";
-import MainComponent from "../components/Main";
+import BunCounterComponent from "../components/BunCounter";
 
 const mapStateToProps = (state, ownProps) => {
 	return {
@@ -15,9 +15,9 @@ const mapDispatchToProps = dispatch => {
 	};
 };
 
-const Main = connect(
+const BunCounter = connect(
 	mapStateToProps,
 	mapDispatchToProps
-)(MainComponent);
+)(BunCounterComponent);
 
-export default Main;
+export default BunCounter;

@@ -1,32 +1,22 @@
 import React from "react";
 import _ from "lodash";
-import PropTypes from "prop-types";
 
 import Bunny from "./Bunny";
-import GameBoard from "../containers/GameBoard";
-import Scores from "../containers/Scores";
+import Game from "./Game";
+import BunCounter from "../containers/BunCounter";
 
-const Main = ({ addBun, bunCount }) => (
+const Main = () => (
 	<div className="container">
-		<h1>
-			<Bunny /> bunmuncher <Bunny />
-		</h1>
-		<button type="button" className="btn btn-light" onClick={addBun}>
-			<Bunny />
-		</button>
-		<div>
-			{_.range(bunCount).map(i => (
-				<Bunny key={i} />
-			))}
+		<div style={{ textAlign: "center" }}>
+			<h1>
+				<Bunny /> bunmuncher <Bunny />
+			</h1>
 		</div>
-		<GameBoard />
-		<Scores />
+
+		<Game />
+
+		<BunCounter />
 	</div>
 );
-
-Main.propTypes = {
-	addBun: PropTypes.func.isRequired,
-	bunCount: PropTypes.number.isRequired
-};
 
 export default Main;

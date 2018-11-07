@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import _ from "lodash";
-import { boardSize, boardState, directions } from "../../common/constants";
+import { boardSize, directions } from "../../common/constants";
 
 const keyDirectionMapping = {
 	ArrowDown: directions.DOWN,
@@ -13,8 +13,11 @@ const keyDirectionMapping = {
 class GameBoard extends Component {
 	handleKeyPress(event) {
 		const direction = keyDirectionMapping[event.key];
-		if (direction) {
-			this.props.changeDirection(direction);
+		if (this.props.player && direction) {
+			this.props.changeDirection({
+				direction,
+				playerId: this.props.player.playerId
+			});
 		}
 	}
 
@@ -29,9 +32,7 @@ class GameBoard extends Component {
 	render() {
 		return (
 			<div>
-				<div>
-					{this.props.players.katie && this.props.players.katie.killed ? "😵" : null}
-				</div>
+				<div>{this.props.player && this.props.player.killed ? "💀💀💀" : null}</div>
 				<div
 					style={{
 						borderWidth: 1,

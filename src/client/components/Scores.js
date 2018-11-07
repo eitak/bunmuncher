@@ -20,18 +20,17 @@ export default ({ scores, players }) => {
 				</tr>
 			</thead>
 			<tbody>
-				{scoresToDisplay.map((score, position) => {
-					console.log(score, position);
-					return (
+				{scoresToDisplay
+					.filter(score => !players[score.player.id].killed)
+					.map((score, position) => (
 						<tr key={score.player.id}>
-							<th scope="row">{position}</th>
+							<th scope="row">{position + 1}</th>
 							<td>
 								{score.player.name} {score.player.icon}
 							</td>
 							<td>{score.score}</td>
 						</tr>
-					);
-				})}
+					))}
 			</tbody>
 		</table>
 	);

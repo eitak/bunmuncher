@@ -1,11 +1,25 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { createStore } from "redux";
+import { createStore, applyMiddleware } from "redux";
 import { Provider } from "react-redux";
 import reducer from "../common/reducers";
-import Main from "./containers/Main";
+import { actionsToSave } from "../common/constants";
+import Main from "./components/Main";
+import axios from "axios";
 
-const store = createStore(reducer);
+const saveActionMiddleware = store => next => {
+	return action => {
+		if (action.saved || actionsToSave.indexOf(action.type) < 0) {
+			next(action);
+			return;
+		}
+
+		axios.post("/api/game", action);
+		return;
+	};
+};
+
+const store = createStore(reducer, applyMiddleware(saveActionMiddleware));
 
 const rootElement = document.getElementById("root");
 const render = () =>
@@ -18,24 +32,10 @@ const render = () =>
 render();
 store.subscribe(render);
 
-store.dispatch({
-	type: "ADD_PLAYER",
-	player: {
-		id: "katie",
-		name: "katie",
-		icon: "🐰",
-		direction: "DOWN",
-		fillStyle: {
-			backgroundColor: "DeepPink"
-		},
-		pathStyle: {
-			backgroundColor: "Pink"
-		},
-		path: [],
-		position: { i: 0, j: 0 }
-	}
-});
-setInterval(() => store.dispatch({ type: "NEXT_FRAME" }), 300);
+const eventSource = new EventSource("/api/game/actions");
+eventSource.onmessage = message => {
+	store.dispatch(JSON.parse(message.data));
+};
 
 // Hot Module Replacement
 if (module.hot) {
