@@ -31,16 +31,6 @@ function setPlayerDirection(state, { playerId, direction }) {
 	const { i, j } = player.position;
 	const currentDirection = player.direction;
 
-	// Don't let player move in opposite to current direction if not in own territory.
-	const inOwnTerritory = state.board[i][j].filledPlayerId === playerId;
-	const forbiddenMove =
-		_.isEqual([currentDirection, direction].sort(), [directions.UP, directions.DOWN].sort()) ||
-		_.isEqual([currentDirection, direction].sort(), [directions.LEFT, directions.RIGHT].sort());
-
-	if (!inOwnTerritory && forbiddenMove) {
-		return state;
-	}
-
 	return {
 		...state,
 		players: {
