@@ -61,7 +61,7 @@ class JoinGame extends Component {
 							type="submit"
 							className="btn btn-light"
 							style={{ width: "100%" }}
-							value={`${this.state.player.icon} join game`}
+							value={`${this.state.player.icon} join game ${this.state.player.icon}`}
 							required
 						/>
 					</div>

@@ -6,8 +6,7 @@ export default ({ scores, players }) => {
 		Object.entries(scores).map(entry => {
 			return { score: entry[1], player: players[entry[0]] };
 		}),
-		"score",
-		"desc"
+		({ score }) => -score
 	);
 
 	return (

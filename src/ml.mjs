@@ -1,18 +1,20 @@
 import _ from "lodash";
 
-import { directions, boardSize } from "./common/constants";
+import { directions, boardSize, characters } from "./common/constants";
 import reducer from "./common/reducers/game";
 import { createStore } from "redux";
 
-const playerId = "super-ml";
-const icon = "🤖";
-const fillColour = "SpringGreen";
-const pathColour = "PaleGreen";
+const numPlayers = 4;
+const snapshotSize = 20;
+
+const playerStyles = _.range(numPlayers).map((position, index) => {
+	return characters[index % characters.length];
+});
 
 const actions = _.values(directions);
 module.exports.actions = actions;
 
-const gridSize = boardSize;
+const gridSize = snapshotSize;
 module.exports.gridSize = gridSize;
 
 module.exports.start = start;
@@ -24,24 +26,24 @@ async function start(getNextAction) {
 		console.log("Start game " + gameId);
 
 		const store = createStore(reducer);
-
-		store.dispatch({
-			type: "ADD_PLAYER",
-			player: {
-				id: playerId,
-				name: "SUPER ML",
-				icon,
-				direction: _.sample(_.values(directions)),
-				fillStyle: {
-					backgroundColor: fillColour
-				},
-				pathStyle: {
-					backgroundColor: pathColour
-				},
-				path: [],
-				position: _.sample(_.flatten(store.getState().board)).position
-			}
-		});
+		_.sampleSize(_.range(boardSize * boardSize), numPlayers)
+			.map((x, index) => {
+				const position = { i: x % boardSize, j: Math.floor(x / boardSize) };
+				const character = characters[index % characters.length];
+				return {
+					id: `${index}`,
+					name: "ROBOT_" + (index + 1),
+					position: { i: x % boardSize, j: Math.floor(x / boardSize) },
+					path: [],
+					killed: false,
+					direction: _.sample(_.values(directions)),
+					...character
+				};
+			})
+			.forEach(player => {
+				console.log({ type: "ADD_PLAYER", player });
+				store.dispatch({ type: "ADD_PLAYER", player });
+			});
 
 		let frameId = 0;
 		let terminal = false;
@@ -49,37 +51,73 @@ async function start(getNextAction) {
 
 		while (true) {
 			const { players, board, scores } = store.getState();
-			terminal = players[playerId].killed;
-			score = scores[playerId];
-			const action = await getNextAction({
-				gameId: sessionId + "-" + gameId,
-				frameId: frameId,
-				state: board,
-				snapshot: board,
-				data: {
-					frameIdx: frameId,
-					score,
-					terminal
-				}
+			terminal =
+				!_.findKey(players, ["killed", false]) && !_.findKey(scores, boardSize * boardSize);
+
+			const orderedPlayers = _.sortBy(Object.values(players), "id");
+
+			const frames = orderedPlayers.map(player => {
+				const { i, j } = player.position;
+				const radius = Math.floor(snapshotSize / 2);
+				const topCoordinate = {
+					i:
+						i - radius < 0
+							? 0
+							: i + radius > boardSize
+								? boardSize - snapshotSize
+								: i - radius,
+					j:
+						j < radius
+							? 0
+							: j + radius > boardSize
+								? boardSize - snapshotSize
+								: j - radius
+				};
+
+				const boardSnapshot = board
+					.slice(topCoordinate.i, topCoordinate.i + snapshotSize)
+					.map(row => row.slice(topCoordinate.j, topCoordinate.j + snapshotSize));
+
+				return {
+					gameId: sessionId + "-" + gameId,
+					frameId,
+					state: boardSnapshot,
+					snapshot: boardSnapshot,
+					data: {
+						frameIdx: frameId,
+						score: player.killed ? 0 : scores[player.id],
+						terminal
+					}
+				};
 			});
-			console.log(action);
+
+			const actions = await getNextAction(frames);
 
 			if (terminal) {
 				console.log("End of game. Score: " + score);
 				break;
 			}
 
-			store.dispatch({
-				type: "SET_PLAYER_DIRECTION",
-				direction: action,
-				playerId
+			actions.forEach((direction, index) => {
+				store.dispatch({
+					type: "SET_PLAYER_DIRECTION",
+					direction,
+					playerId: orderedPlayers[index].id
+				});
 			});
+
+			// await wait(500);
+
 			store.dispatch({ type: "NEXT_FRAME" });
 
 			frameId++;
 		}
 		gameId++;
 	}
+}
+
+function wait(ms) {
+	return new Promise(cb => setTimeout(cb, ms));
 }
 
 export function stateToTensor(state) {
@@ -96,7 +134,7 @@ export function stateToTensor(state) {
 
 // Defines the reward function, so really part of ML. But it's specific to the game...
 export function getScore(frame) {
-	return +frame.score - frame.frameIdx / 10;
+	return +frame.score;
 }
 
 export function renderGameToCanvas(game, canvas) {
@@ -114,15 +152,15 @@ export function renderGameToCanvas(game, canvas) {
 			const x = (i / gridSize) * w;
 			const y = (j / gridSize) * h;
 			if (cell.pathPlayerId) {
-				ctx.fillStyle = pathColour;
+				ctx.fillStyle = playerStyles[cell.pathPlayerId].pathStyle.backgroundColor;
 			} else if (cell.filledPlayerId) {
-				ctx.fillStyle = fillColour;
+				ctx.fillStyle = playerStyles[cell.filledPlayerId].fillStyle.backgroundColor;
 			} else {
 				ctx.fillStyle = "white";
 			}
 
 			if (cell.players.length > 0) {
-				ctx.fillText(icon, x, y);
+				ctx.fillText(playerStyles[cell.players[0]].icon, x, y);
 			}
 			ctx.fillRect(x, y, cw, ch);
 		});

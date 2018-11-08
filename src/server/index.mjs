@@ -23,7 +23,7 @@ app.use(
 	})
 );
 
-setInterval(() => state.saveAction(storeId, { type: "NEXT_FRAME" }), 1000);
+setInterval(() => state.saveAction(storeId, { type: "NEXT_FRAME" }), 500);
 
 app.post("/api/game", (request, response) => {
 	const action = request.body;
@@ -41,6 +41,7 @@ app.post("/api/game", (request, response) => {
 	}
 
 	if (action.type === "SET_PLAYER_DIRECTION") {
+		// TODO: verify player is not dead
 		action.playerId = request.session.playerId;
 	}
 

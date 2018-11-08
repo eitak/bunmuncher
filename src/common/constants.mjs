@@ -1,4 +1,5 @@
-export const boardSize = 20;
+export const boardSize = 30;
+export const snapshotSize = 20;
 
 export const directions = {
 	UP: "UP",

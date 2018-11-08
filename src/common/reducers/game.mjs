@@ -28,8 +28,9 @@ export default (state = { board: initialBoard, players: {}, scores: {} }, action
 
 function setPlayerDirection(state, { playerId, direction }) {
 	const player = state.players[playerId];
-	const { i, j } = player.position;
-	const currentDirection = player.direction;
+	if (!player) {
+		return state;
+	}
 
 	return {
 		...state,
@@ -45,6 +46,11 @@ function setPlayerDirection(state, { playerId, direction }) {
 
 function addPlayer({ board, players, scores }, { player }) {
 	const playerId = player.id;
+	if (players[playerId] && !players[playerId].killed) {
+		// Player is already playing!
+		return { board, players, scores };
+	}
+
 	const position = player.position;
 
 	const cell = board[position.i][position.j];
@@ -114,7 +120,9 @@ function nextFrame({ board, players, scores }) {
 			_.flatten(nextBoard).filter(item => item.filledPlayerId),
 			item => item.filledPlayerId
 		),
-		..._.mapValues(_.pickBy(nextPlayers, player => player.killed), player => scores[player.id])
+		..._.mapValues(_.pickBy(nextPlayers, player => player.killed), () => 0)
+		// Change to the following if you want to keep the score before they were killed:
+		// ..._.mapValues(_.pickBy(nextPlayers, player => player.killed), scores[player.id])
 	};
 
 	const result = {

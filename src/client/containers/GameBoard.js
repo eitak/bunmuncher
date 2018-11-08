@@ -1,12 +1,27 @@
 import { connect } from "react-redux";
 import GameBoardComponent from "../components/GameBoard";
-import { actions } from "../../common/constants";
+import { boardSize, snapshotSize } from "../../common/constants";
 
-const mapStateToProps = state => {
+const mapStateToProps = ({ playerId, game }) => {
+	const player = playerId && game.players[playerId];
+	if (!player) {
+		return { players: {}, board: [] };
+	}
+
+	const { i, j } = player.position;
+
+	const radius = Math.floor(snapshotSize / 2);
+	const topCoordinate = {
+		i: i - radius < 0 ? 0 : i + radius > boardSize ? boardSize - snapshotSize : i - radius,
+		j: j < radius ? 0 : j + radius > boardSize ? boardSize - snapshotSize : j - radius
+	};
+	const board = game.board
+		.slice(topCoordinate.i, topCoordinate.i + snapshotSize)
+		.map(row => row.slice(topCoordinate.j, topCoordinate.j + snapshotSize));
 	return {
-		players: state.game.players,
-		board: state.game.board,
-		player: state.game.players[state.playerId]
+		players: game.players,
+		board,
+		player
 	};
 };
 

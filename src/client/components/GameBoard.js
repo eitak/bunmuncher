@@ -1,7 +1,8 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import _ from "lodash";
-import { boardSize, directions } from "../../common/constants";
+import { directions } from "../../common/constants";
+import { boardSize, snapshotSize } from "../../common/constants";
 
 const keyDirectionMapping = {
 	ArrowDown: directions.DOWN,
@@ -13,7 +14,7 @@ const keyDirectionMapping = {
 class GameBoard extends Component {
 	handleKeyPress(event) {
 		const direction = keyDirectionMapping[event.key];
-		if (this.props.player && direction) {
+		if (this.props.player && !this.props.player.killed && direction) {
 			this.props.changeDirection({
 				direction,
 				playerId: this.props.player.playerId
@@ -30,9 +31,21 @@ class GameBoard extends Component {
 	}
 
 	render() {
+		if (this.props.player && this.props.player.killed) {
+			return (
+				<div>
+					{_.range(snapshotSize).map(i => (
+						<div key={i}>
+							{Array(snapshotSize)
+								.fill("💀")
+								.join(" ")}
+						</div>
+					))}
+				</div>
+			);
+		}
 		return (
 			<div>
-				<div>{this.props.player && this.props.player.killed ? "💀💀💀" : null}</div>
 				<div
 					style={{
 						borderWidth: 1,
@@ -40,8 +53,8 @@ class GameBoard extends Component {
 						display: "inline-block"
 					}}
 				>
-					{_.range(boardSize).map(i => (
-						<Row key={i} players={this.props.players} row={this.props.board[i]} />
+					{this.props.board.map((row, i) => (
+						<Row key={i} players={this.props.players} row={row} />
 					))}
 				</div>
 			</div>
@@ -58,8 +71,8 @@ GameBoard.propTypes = {
 const Row = ({ row, players }) => {
 	return (
 		<div style={{ height: 25, margin: 0, padding: 0 }}>
-			{_.range(boardSize).map(i => (
-				<Item key={i} players={players} item={row[i]} />
+			{row.map((item, i) => (
+				<Item key={i} players={players} item={item} />
 			))}
 		</div>
 	);
